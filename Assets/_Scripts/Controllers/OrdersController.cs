@@ -1,58 +1,33 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using _Scripts.AssetsProvider;
 using _Scripts.Kitchen;
+using UnityEditor;
 using UnityEngine;
+using Zenject;
+using ObjectFactory = _Scripts.Factory.ObjectFactory;
 
 namespace _Scripts.Controllers
 {
 	public sealed class OrdersController : MonoBehaviour
 	{
-		private static OrdersController _instance = null;
+		private ObjectFactory _objectFactory;
+		public event Action OnCompleteOrder;
 
-		private bool _isInit;
+		public List<Order> Orders = new();
 
-		public static OrdersController Instance
+		[Inject]
+		private void Construct(ObjectFactory objectFactory)
 		{
-			get
-			{
-				if (!_instance)
-					_instance = FindObjectOfType<OrdersController>();
-
-				if (_instance && !_instance._isInit)
-				{
-					_instance.Initialize();
-				}
-
-				return _instance;
-			}
-			private set => _instance = value;
+			_objectFactory = objectFactory;
 		}
 
-		public List<Order> Orders = new List<Order>();
-
-		private void Awake()
+		public void Initialize()
 		{
-			if ((_instance != null) && (_instance != this))
-			{
-				Debug.LogError("Another instance of OrdersController already exists!");
-			}
-
-			Instance = this;
-		}
-
-		private void Start()
-		{
-			Initialize();
-		}
-
-		private void Initialize()
-		{
-			if (_isInit)
-				return;
-
-			var ordersConfig = Resources.Load<TextAsset>("Configs/Orders");
+			var ordersConfig = GetOrders();
 			var ordersXml = new XmlDocument();
 			using (var reader = new StringReader(ordersConfig.ToString()))
 			{
@@ -66,8 +41,11 @@ namespace _Scripts.Controllers
 				Orders.Add(order);
 			}
 
-			_isInit = true;
+			OnCompleteOrder?.Invoke();
 		}
+
+		private TextAsset GetOrders() => 
+			_objectFactory.Create<TextAsset>(AssetPath.OrdersConfig);
 
 		public Order FindOrder(List<string> foods)
 		{
@@ -97,14 +75,6 @@ namespace _Scripts.Controllers
 			}
 
 			return new Order(node.SelectSingleNode("@name").Value, foods);
-		}
-
-		private void OnDestroy()
-		{
-			if (Instance == this)
-			{
-				Instance = null;
-			}
 		}
 	}
 }

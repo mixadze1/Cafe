@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using _Scripts.Controllers;
 using UnityEngine;
+using Zenject;
 
 namespace _Scripts.Kitchen
 {
@@ -14,10 +15,19 @@ namespace _Scripts.Kitchen
 		public event Action CurOrderUpdated;
 
 		[HideInInspector] public List<string> CurOrder = new();
+		private OrdersController _orderController;
 
-		private void Start()
+		[Inject]
+		private void Construct(OrdersController ordersController)
 		{
-			_possibleOrders.AddRange(OrdersController.Instance.Orders);
+			_orderController = ordersController;
+			_orderController.OnCompleteOrder += GetOrders;
+
+		}
+
+		private void GetOrders()
+		{
+			_possibleOrders.AddRange(_orderController.Orders);
 		}
 
 		public override bool TryPlaceFood(Food food)
@@ -46,7 +56,7 @@ namespace _Scripts.Kitchen
 		public override void FreePlace()
 		{
 			_possibleOrders.Clear();
-			_possibleOrders.AddRange(OrdersController.Instance.Orders);
+			_possibleOrders.AddRange(_orderController.Orders);
 
 			CurOrder.Clear();
 
@@ -91,6 +101,11 @@ namespace _Scripts.Kitchen
 			}
 
 			_possibleOrders.RemoveAll(x => ordersToRemove.Contains(x));
+		}
+
+		private void OnDestroy()
+		{
+			_orderController.OnCompleteOrder -= GetOrders;
 		}
 	}
 }

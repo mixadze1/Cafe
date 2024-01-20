@@ -50,10 +50,6 @@ namespace _Scripts.Kitchen
 			{
 				Place.FoodPlaceUpdated += OnFoodPlaceUpdated;
 			}
-		}
-
-		private void Start()
-		{
 			OnFoodPlaceUpdated();
 		}
 

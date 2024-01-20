@@ -1,55 +1,94 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using _Scripts.AssetsProvider;
+using _Scripts.Factory;
+using _Scripts.GameLogic;
 using _Scripts.Kitchen;
 using UnityEngine;
+using Zenject;
 using Random = UnityEngine.Random;
 
 namespace _Scripts.Controllers
 {
-	public class CustomersController : MonoBehaviour
+	public class CustomersController : MonoBehaviour, ICustomerHandler
 	{
+		private float _customerWaitTime = 18f;
+		
 		private Stack<List<Order>> _orderSets;
+		private CustomerFactory _customerFactory;
 
+		private IGameHandler _gameHandler;
+		
 		private float _fixedTime;
 
-		private const string CUSTOMER_PREFABS_PATH = "Prefabs/Customer";
-
-		public static CustomersController Instance { get; private set; }
-
 		public int CustomersTargetNumber = 15;
-		public float CustomerWaitTime = 18f;
 		public float CustomerSpawnTime = 3f;
 
-		public List<CustomerPlace> CustomerPlaces = null;
+		public List<CustomerPlace> CustomerPlaces;
+		private int _totalOrderTargetCondition;
+		private OrdersController _ordersController;
+		private GameObjectFactory _gameObjectFactory;
 
 		public int TotalCustomersGenerated { get; private set; }
 
 		public event Action TotalCustomersGeneratedChanged;
 
-		private bool HasFreePlaces
+		private bool HasFreePlaces => 
+			CustomerPlaces.Any(x => x.IsFree);
+		
+		
+		[Inject]
+		private void Construct(CustomerFactory customerFactory, IGameHandler gameHandler, OrdersController ordersController, GameObjectFactory gameObjectFactory)
 		{
-			get { return CustomerPlaces.Any(x => x.IsFree); }
+			_gameObjectFactory = gameObjectFactory;
+			_ordersController = ordersController;
+			_gameHandler = gameHandler;
+			_customerFactory = customerFactory;
+			_gameHandler.OnRestartGame += OnRestartGame;
 		}
 
-		public bool IsComplete
+		public void Initialize()
 		{
-			get { return TotalCustomersGenerated >= CustomersTargetNumber && CustomerPlaces.All(x => x.IsFree); }
+			var totalOrders = 0;
+			_orderSets = new Stack<List<Order>>();
+			
+			totalOrders = GenerateOrders(totalOrders);
+
+			CustomerPlaces.ForEach(x => x.Free());
+			_fixedTime = 0f;
+			TotalCustomersGenerated = 0;
+			
+			TotalCustomersGeneratedChanged?.Invoke();
+
+			_totalOrderTargetCondition = totalOrders - 2;
 		}
 
-		private void Awake()
+		public int GetTargetOrders() => 
+			_totalOrderTargetCondition;
+
+		public bool IsComplete() => 
+			TotalCustomersGenerated >= CustomersTargetNumber && CustomerPlaces.All(x => x.IsFree);
+
+		private void OnRestartGame() => 
+			Initialize();
+
+		private int GenerateOrders(int totalOrders)
 		{
-			if (Instance != null)
+			for (var i = 0; i < CustomersTargetNumber; i++)
 			{
-				Debug.LogError("Another instance of CustomersController already exists!");
+				var orders = new List<Order>();
+				var ordersNum = Random.Range(1, 4);
+				for (var j = 0; j < ordersNum; j++)
+				{
+					orders.Add(GenerateRandomOrder());
+				}
+
+				_orderSets.Push(orders);
+				totalOrders += ordersNum;
 			}
 
-			Instance = this;
-		}
-
-		private void Start()
-		{
-			Initialize();
+			return totalOrders;
 		}
 
 		private void FixedUpdate()
@@ -70,32 +109,6 @@ namespace _Scripts.Controllers
 			_fixedTime = 0f;
 		}
 
-		public void Initialize()
-		{
-			var totalOrders = 0;
-			_orderSets = new Stack<List<Order>>();
-			for (var i = 0; i < CustomersTargetNumber; i++)
-			{
-				var orders = new List<Order>();
-				var ordersNum = Random.Range(1, 4);
-				for (var j = 0; j < ordersNum; j++)
-				{
-					orders.Add(GenerateRandomOrder());
-				}
-
-				_orderSets.Push(orders);
-				totalOrders += ordersNum;
-			}
-
-			CustomerPlaces.ForEach(x => x.Free());
-			_fixedTime = 0f;
-
-			TotalCustomersGenerated = 0;
-			TotalCustomersGeneratedChanged?.Invoke();
-
-			GameplayController.Instance.OrdersTarget = totalOrders - 2;
-		}
-
 		/// <summary>
 		/// Отпускаем указанного посетителя
 		/// </summary>
@@ -109,7 +122,7 @@ namespace _Scripts.Controllers
 			}
 
 			place.Free();
-			GameplayController.Instance.CheckGameFinish();
+			_gameHandler.CheckGameFinish();
 		}
 
 		/// <summary>
@@ -139,28 +152,29 @@ namespace _Scripts.Controllers
 
 		private Customer GenerateCustomer()
 		{
-			var customerGo = Instantiate(Resources.Load<GameObject>(CUSTOMER_PREFABS_PATH));
-			var customer = customerGo.GetComponent<Customer>();
+			var customer = _customerFactory.CreateCustomer(AssetPath.CustomerPrefab);
 
 			var orders = _orderSets.Pop();
-			customer.Inititialize(orders);
+			customer.Inititialize(orders, this, _gameObjectFactory);
 
 			return customer;
 		}
 
-		private Order GenerateRandomOrder()
-		{
-			var oc = OrdersController.Instance;
-			return oc.Orders[Random.Range(0, oc.Orders.Count)];
-		}
+		private Order GenerateRandomOrder() => 
+			_ordersController.Orders[Random.Range(0, _ordersController.Orders.Count)];
 
+		public float GetCustomerTime()
+		{
+			if(_customerWaitTime < 0)
+				Debug.LogError($"Set current wait customer {_customerWaitTime}.");
+			
+			return _customerWaitTime;
+		}
 
 		private void OnDestroy()
 		{
-			if (Instance == this)
-			{
-				Instance = null;
-			}
+			if (_gameHandler != null)
+				_gameHandler.OnRestartGame -= OnRestartGame;
 		}
 	}
 }

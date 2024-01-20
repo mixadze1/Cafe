@@ -1,45 +1,54 @@
+using System;
 using _Scripts.Controllers;
+using _Scripts.GameLogic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 namespace _Scripts.UI
 {
 	public sealed class LoseWindow : MonoBehaviour
 	{
+		private IGameHandler _gameHandler;
+		private IGameInfo _gameInfo;
+
 		public Image GoalBar;
 		public TMP_Text GoalText;
 		public Button ReplayButton;
 		public Button ExitButton;
 		public Button CloseButton;
 
-		private bool _isInit = false;
 
-		private void Initialize()
+		[Inject]
+		private void Construct(IGameHandler gameHandler, IGameInfo gameInfo)
 		{
-			var gc = GameplayController.Instance;
+			_gameHandler = gameHandler;
+			_gameInfo = gameInfo;
 
-			ReplayButton.onClick.AddListener(gc.Restart);
-			ExitButton.onClick.AddListener(gc.CloseGame);
-			CloseButton.onClick.AddListener(gc.CloseGame);
+			_gameHandler.OnLoseGame += Show;
+			_gameHandler.OnRestartGame += Hide;
+
+			ReplayButton.onClick.AddListener(_gameHandler.Restart);
+			ExitButton.onClick.AddListener(_gameHandler.CloseGame);
+			CloseButton.onClick.AddListener(_gameHandler.CloseGame);
 		}
 
-		public void Show()
+		private void Show()
 		{
-			if (!_isInit)
-			{
-				Initialize();
-			}
-
-			var gc = GameplayController.Instance;
-
-			GoalBar.fillAmount = Mathf.Clamp01((float)gc.TotalOrdersServed / gc.OrdersTarget);
-			GoalText.text = $"{gc.TotalOrdersServed}/{gc.OrdersTarget}";
+			GoalText.text = $"{_gameInfo.GetTotalOrdersServed()}/{_gameInfo.GetOrdersTarget()}";
+			GoalBar.fillAmount = Mathf.Clamp01((float)_gameInfo.GetTotalOrdersServed() / _gameInfo.GetOrdersTarget());
 
 			gameObject.SetActive(true);
 		}
 
-		public void Hide() => 
+		public void Hide() =>
 			gameObject.SetActive(false);
+
+		private void OnDestroy()
+		{
+			_gameHandler.OnLoseGame -= Show;
+			_gameHandler.OnRestartGame -= Hide;
+		}
 	}
 }
