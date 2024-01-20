@@ -1,4 +1,6 @@
 using _Scripts.Controllers;
+using _Scripts.Controllers.Customers;
+using _Scripts.Controllers.Orders;
 using _Scripts.Factory;
 using _Scripts.GameLogic;
 using UnityEngine;
@@ -8,9 +10,8 @@ namespace _Scripts.Installers
 {
     public class GameInstaller : MonoInstaller
     {
-        [SerializeField] private CustomersController _customersController;
         [SerializeField] private Game _game;
-        [SerializeField] private OrdersController _ordersController;
+        [SerializeField] private CustomersProvider _customersProvider;
 
         [Header("Factories")] 
         [SerializeField] private CustomerFactory _customerFactopy;
@@ -19,6 +20,7 @@ namespace _Scripts.Installers
 
         public override void InstallBindings()
         {
+            BindCustomerProvider();
             BindCustomerController();
             BindGameplayController();
             BindOrdersController();
@@ -28,6 +30,18 @@ namespace _Scripts.Installers
             BindGameObjectFactory();
         }
 
+        private void BindCustomerProvider() => 
+            Container.Bind<CustomersProvider>().FromInstance(_customersProvider);
+
+        private void BindOrdersController() =>
+            Container.Bind<OrdersController>().AsSingle();
+
+        private void BindCustomerController() => 
+            Container.BindInterfacesTo<CustomersController>().AsSingle();
+
+        private void BindGameplayController() =>
+            Container.BindInterfacesTo<Game>().FromInstance(_game);
+
         private void BindGameObjectFactory() => 
             Container.Bind<GameObjectFactory>().FromInstance(_gameObjectFactory);
 
@@ -36,14 +50,5 @@ namespace _Scripts.Installers
 
         private void BindFactoryCustomers() =>
             Container.Bind<CustomerFactory>().FromInstance(_customerFactopy);
-
-        private void BindOrdersController() =>
-            Container.Bind<OrdersController>().FromInstance(_ordersController);
-
-        private void BindGameplayController() =>
-            Container.BindInterfacesTo<Game>().FromInstance(_game);
-
-        private void BindCustomerController() =>
-            Container.Bind<CustomersController>().FromInstance(_customersController);
     }
 }

@@ -4,15 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using _Scripts.AssetsProvider;
+using _Scripts.Factory;
 using _Scripts.Kitchen;
-using UnityEditor;
 using UnityEngine;
 using Zenject;
-using ObjectFactory = _Scripts.Factory.ObjectFactory;
 
-namespace _Scripts.Controllers
+namespace _Scripts.Controllers.Orders
 {
-	public sealed class OrdersController : MonoBehaviour
+	public sealed class OrdersController
 	{
 		private ObjectFactory _objectFactory;
 		public event Action OnCompleteOrder;

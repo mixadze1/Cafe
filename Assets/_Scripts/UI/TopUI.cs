@@ -1,4 +1,5 @@
 using _Scripts.Controllers;
+using _Scripts.Controllers.Customers;
 using _Scripts.GameLogic;
 using TMPro;
 using UnityEngine;
@@ -9,26 +10,28 @@ namespace _Scripts.UI
 {
 	public sealed class TopUI : MonoBehaviour
 	{
+		private ICustomersInfo _customersInfo;
+		private IGameChanges _gameChanges;
+		private IGameInfo _gameInfo;
+		private ICustomerHandler _customersHandler;
+		
 		public Image OrdersBar;
 		public TMP_Text OrdersCountText;
 		public TMP_Text CustomersCountText;
 		
-		private CustomersController _customerController;
-		private IGameChanges _gameChanges;
-		private IGameInfo _gameInfo;
-
 		[Inject]
-		private void Construct(CustomersController customersController, IGameChanges gameChanges, IGameInfo gameInfo)
+		private void Construct(ICustomersInfo customerInfo, ICustomerHandler customerHandler, IGameChanges gameChanges, IGameInfo gameInfo)
 		{
 			_gameInfo = gameInfo;
 			_gameChanges = gameChanges;
-			_customerController = customersController;
+			_customersInfo = customerInfo;
+			_customersHandler = customerHandler;
 		}
 
 		private void Start()
 		{
 			_gameChanges.TotalOrdersServedChanged += OnOrdersChanged;
-			_customerController.TotalCustomersGeneratedChanged += OnCustomersChanged;
+			_customersHandler.TotalCustomersGeneratedChanged += OnCustomersChanged;
 			OnOrdersChanged();
 			OnCustomersChanged();
 		}
@@ -38,14 +41,14 @@ namespace _Scripts.UI
 			if (_gameChanges != null)
 				_gameChanges.TotalOrdersServedChanged -= OnOrdersChanged;
 
-			if (_customerController)
-				_customerController.TotalCustomersGeneratedChanged -= OnCustomersChanged;
+			if (_customersInfo != null)
+				_customersHandler.TotalCustomersGeneratedChanged -= OnCustomersChanged;
 		}
 
 		private void OnCustomersChanged()
 		{
-			var cc = _customerController;
-			CustomersCountText.text = (cc.CustomersTargetNumber - cc.TotalCustomersGenerated).ToString();
+			var cc = _customersInfo;
+			CustomersCountText.text = (cc.GetCustomersTargetNumber() - cc.GetTotalCustomersGenerated()).ToString();
 		}
 
 		private void OnOrdersChanged()

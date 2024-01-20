@@ -1,5 +1,7 @@
 using System;
 using _Scripts.Controllers;
+using _Scripts.Controllers.Customers;
+using _Scripts.Controllers.Orders;
 using _Scripts.Kitchen;
 using JetBrains.Annotations;
 using UnityEditor;
@@ -10,9 +12,10 @@ namespace _Scripts.GameLogic
 {
 	public sealed class Game : MonoBehaviour, IGameHandler, IGameInfo, IGameChanges
 	{
-		private CustomersController _customerController;
+		private ICustomersInfo _customersInfo;
+		private ICustomerHandler _customerHandler;
 		private OrdersController _orderController;
-		
+
 		public event Action OnWinGame;
 		public event Action OnLoseGame;
 		public event Action OnEndGame;
@@ -34,16 +37,17 @@ namespace _Scripts.GameLogic
 		}
 
 		[Inject]
-		private void Construct(CustomersController customersController, OrdersController ordersController)
+		private void Construct(ICustomersInfo customersInfo, ICustomerHandler customerHandler, OrdersController ordersController)
 		{
-			_customerController = customersController;
+			_customerHandler = customerHandler;
+			_customersInfo = customersInfo;
 			_orderController = ordersController;
 		}
 
 		private void Start()
 		{
 			_orderController.Initialize();
-			_customerController.Initialize();
+			_customerHandler.Initialize();
 			Initialize();
 		}
 		
@@ -52,7 +56,7 @@ namespace _Scripts.GameLogic
 			TotalOrdersServed = 0;
 			Time.timeScale = 1f;
 			TotalOrdersServedChanged?.Invoke();
-			OrdersTarget = _customerController.GetTargetOrders();
+			OrdersTarget = _customersInfo.GetTargetOrders();
 		}
 
 		public int GetOrdersTarget() => 
@@ -64,7 +68,7 @@ namespace _Scripts.GameLogic
 
 		public void CheckGameFinish()
 		{
-			if (_customerController.IsComplete())
+			if (_customerHandler.IsComplete())
 			{
 				EndGame(TotalOrdersServed >= OrdersTarget);
 			}
@@ -88,7 +92,7 @@ namespace _Scripts.GameLogic
 		[UsedImplicitly]
 		public bool TryServeOrder(Order order)
 		{
-			if (!_customerController.ServeOrder(order))
+			if (!_customerHandler.ServeOrder(order))
 			{
 				return false;
 			}
@@ -118,10 +122,5 @@ namespace _Scripts.GameLogic
 			Application.Quit();
 #endif
 		}
-	}
-
-	public interface IGameChanges
-	{
-		event Action TotalOrdersServedChanged;
 	}
 }

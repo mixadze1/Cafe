@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using _Scripts.AssetsProvider;
 using _Scripts.Controllers;
+using _Scripts.Controllers.Customers;
 using _Scripts.Factory;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -10,33 +11,32 @@ namespace _Scripts.Kitchen
 {
 	public sealed class Customer : MonoBehaviour
 	{
-		private ICustomerHandler _customerHandler;
-
-		const string ORDERS_PREFABS_PATH = "Prefabs/Orders/{0}";
+		private ICustomerHandler _customersHandler;
+		private ICustomersInfo _customersInfo;
 
 		private GameObjectFactory _gameObjectFactory;
-		
+
 		private List<Order> _orders;
 		private float _timer;
 		private bool _isActive;
 
+		private float _waitTime;
+		
 		public Image CustomerImage;
 		public List<Sprite> CustomerSprites;
 		public Image TimerBar;
 		public List<CustomerOrderPlace> OrderPlaces;
-
-
-		private float _waitTime;
-
+		
 		/// <summary>
 		/// Есть ли необслуженные заказы у указанного посетителя.
 		/// </summary>
 		public bool IsComplete => _orders.Count == 0;
 
-		public void Inititialize(List<Order> orders, ICustomerHandler customerHandler, GameObjectFactory gameObjectFactory)
+		public void Initialize(List<Order> orders, ICustomerHandler customerHandler, ICustomersInfo customersInfo, GameObjectFactory gameObjectFactory)
 		{
+			_customersInfo = customersInfo;
+			_customersHandler = customerHandler;
 			_gameObjectFactory = gameObjectFactory;
-			_customerHandler = customerHandler;
 			_orders = orders;
 
 			if (_orders.Count > OrderPlaces.Count)
@@ -90,13 +90,13 @@ namespace _Scripts.Kitchen
 
 			_timer += Time.deltaTime;
 
-			_waitTime = _customerHandler.GetCustomerTime() - _timer;
+			_waitTime = _customersInfo.GetCustomerTime() - _timer;
 
-			TimerBar.fillAmount = _waitTime / _customerHandler.GetCustomerTime();
+			TimerBar.fillAmount = _waitTime / _customersInfo.GetCustomerTime();
 
 			if (_waitTime <= 0f)
 			{
-				_customerHandler.FreeCustomer(this);
+				_customersHandler.FreeCustomer(this);
 			}
 		}
 
