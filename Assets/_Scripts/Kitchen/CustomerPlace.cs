@@ -15,6 +15,9 @@ namespace _Scripts.Kitchen
 			customer.transform.localPosition = Vector3.zero;
 		}
 
+		public float GetLeftTime() => 
+			CurCustomer.GetPercentLeftTime();
+
 		public void Free()
 		{
 			if (!CurCustomer)

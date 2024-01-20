@@ -142,16 +142,21 @@ namespace _Scripts.Controllers.Customers
 			place.Free();
 			_gameHandler.CheckGameFinish();
 		}
-
-		/// <summary>
-		///  Пытаемся обслужить посетителя с заданным заказом и наименьшим оставшимся временем ожидания.
-		///  Если у посетителя это последний оставшийся заказ из списка, то отпускаем его.
-		/// </summary>
-		/// <param name="order">Заказ, который пытаемся отдать</param>
-		/// <returns>Флаг - результат, удалось ли успешно отдать заказ</returns>
+		
 		public bool ServeOrder(Order order)
 		{
-			throw new NotImplementedException("ServeOrder: this feature is not implemented.");
+			IEnumerable<CustomerPlace> currentCustomers = _customerPlaces.Where(x => !x.IsFree).OrderBy(x => x.GetLeftTime());
+			foreach (var c in currentCustomers)
+			{
+				if (c.CurCustomer.ServeOrder(order))
+				{
+					if(c.CurCustomer.IsComplete)
+						c.Free();
+					
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private void SpawnCustomer()

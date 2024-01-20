@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using UnityEngine;
 
 namespace _Scripts.Kitchen
 {
@@ -24,12 +25,13 @@ namespace _Scripts.Kitchen
 			get { return _foods.AsReadOnly(); }
 		}
 
-		List<OrderFood> _foods;
+		private List<OrderFood> _foods;
 
 		public Order(string name, List<OrderFood> foods)
 		{
 			Name = name;
 			_foods = foods;
+			Debug.Log($" Name : {Name}");
 		}
 	}
 }

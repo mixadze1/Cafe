@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using _Scripts.AssetsProvider;
 using _Scripts.Controllers;
 using _Scripts.Controllers.Customers;
@@ -71,7 +72,7 @@ namespace _Scripts.Kitchen
 		[UsedImplicitly]
 		public bool ServeOrder(Order order)
 		{
-			var place = OrderPlaces.Find(x => x.CurOrder == order);
+			var place = OrderPlaces.Where(x => x.IsActive).ToList().Find(x => x.CurOrder.Name == order.Name);
 			if (!place)
 			{
 				return false;
@@ -99,6 +100,9 @@ namespace _Scripts.Kitchen
 				_customersHandler.FreeCustomer(this);
 			}
 		}
+
+		public float GetPercentLeftTime() => 
+			_waitTime / _customersInfo.GetCustomerTime();
 
 		[ContextMenu("Set random sprite")]
 		private void SetRandomSprite()

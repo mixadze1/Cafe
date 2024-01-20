@@ -1,5 +1,4 @@
 using System;
-using JetBrains.Annotations;
 using UnityEngine;
 
 namespace _Scripts.Kitchen
@@ -8,22 +7,40 @@ namespace _Scripts.Kitchen
 	public sealed class FoodTrasher : MonoBehaviour
 	{
 		private FoodPlace _place;
-		private float _timer;
+		private float _fixedTime;
+		private float _duration = 0.25f;
+		
+		private  bool _isDoubleTap;
 
-		void Start()
+		private void Awake()
 		{
 			_place = GetComponent<FoodPlace>();
-			_timer = Time.realtimeSinceStartup;
+			_fixedTime = 0;
 		}
 
-		/// <summary>
-		/// Освобождает место по двойному тапу если еда на этом месте сгоревшая.
-		/// </summary>
-		[UsedImplicitly]
+		private void FixedUpdate()
+		{
+			if (!_isDoubleTap)
+				return;
+
+			_fixedTime += Time.fixedDeltaTime;
+			if (_fixedTime >= _duration)
+			{
+				_fixedTime = 0;
+				_isDoubleTap = false;
+			}
+		}
+
 		public void TryTrashFood()
 		{
-			throw new NotImplementedException("TryTrashFood: this feature is not implemented");
+			if (!_isDoubleTap)
+			{
+				_isDoubleTap = true;
+				return;
+			}
+			
+			if(!_place.IsFree && _place.CurFood.CurStatus == Food.FoodStatus.Overcooked)
+				_place.FreePlace();
 		}
-
 	}
 }
