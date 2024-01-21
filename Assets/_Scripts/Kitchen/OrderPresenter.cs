@@ -7,9 +7,9 @@ namespace _Scripts.Kitchen
 	{
 		public OrderVisualizer Visualizer = null;
 
-		OrderPlace _orderPlace = null;
+		private OrderPlace _orderPlace = null;
 
-		private void Start()
+		private void Awake()
 		{
 			_orderPlace = GetComponent<OrderPlace>();
 			_orderPlace.CurOrderUpdated += OnOrderUpdated;
@@ -23,9 +23,7 @@ namespace _Scripts.Kitchen
 			}
 		}
 
-		private void OnOrderUpdated()
-		{
+		private void OnOrderUpdated() => 
 			Visualizer.Init(_orderPlace.CurOrder);
-		}
 	}
 }

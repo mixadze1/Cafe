@@ -68,7 +68,6 @@ namespace _Scripts.Controllers.Orders
 		private Order ParseOrder(XmlNode node)
 		{
 			var foods = new List<Order.OrderFood>();
-			Debug.Log($"Create order: {node.SelectSingleNode("@name")?.InnerText}");
 			foreach (XmlNode foodNode in node.SelectNodes("food"))
 			{
 				foods.Add(new Order.OrderFood(foodNode.InnerText, foodNode.SelectSingleNode("@needs")?.InnerText));

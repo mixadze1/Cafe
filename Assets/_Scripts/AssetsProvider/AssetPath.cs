@@ -4,6 +4,6 @@ namespace _Scripts.AssetsProvider
     {
         public const string CustomerPrefab = "Prefabs/Customer";
         public const string OrdersConfig = "Configs/Orders";
-        public const string Orders = "Prefabs/Orders/{0}";
+        public const string OrdersBurgers = "Prefabs/Orders/{0}";
     }
 }

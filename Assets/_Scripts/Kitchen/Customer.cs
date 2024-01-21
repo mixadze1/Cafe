@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using _Scripts.AssetsProvider;
-using _Scripts.Controllers;
 using _Scripts.Controllers.Customers;
 using _Scripts.Factory;
 using JetBrains.Annotations;
@@ -12,7 +11,7 @@ namespace _Scripts.Kitchen
 {
 	public sealed class Customer : MonoBehaviour
 	{
-		private ICustomerHandler _customersHandler;
+		private ICustomersController _customersesController;
 		private ICustomersInfo _customersInfo;
 
 		private GameObjectFactory _gameObjectFactory;
@@ -27,16 +26,15 @@ namespace _Scripts.Kitchen
 		public List<Sprite> CustomerSprites;
 		public Image TimerBar;
 		public List<CustomerOrderPlace> OrderPlaces;
-		
-		/// <summary>
-		/// Есть ли необслуженные заказы у указанного посетителя.
-		/// </summary>
+		private ICustomersSettings _customerSettings;
+
 		public bool IsComplete => _orders.Count == 0;
 
-		public void Initialize(List<Order> orders, ICustomerHandler customerHandler, ICustomersInfo customersInfo, GameObjectFactory gameObjectFactory)
+		public void Initialize(List<Order> orders, ICustomersController customersController, ICustomersInfo customersInfo, ICustomersSettings customersSettings, GameObjectFactory gameObjectFactory)
 		{
+			_customerSettings = customersSettings;
 			_customersInfo = customersInfo;
-			_customersHandler = customerHandler;
+			_customersesController = customersController;
 			_gameObjectFactory = gameObjectFactory;
 			_orders = orders;
 
@@ -63,8 +61,8 @@ namespace _Scripts.Kitchen
 			{
 				var order = _orders[i];
 				var place = OrderPlaces[i];
-
-				_gameObjectFactory.Create<GameEntity>(string.Format(AssetPath.Orders, order.Name), place.transform);
+				
+				_gameObjectFactory.Create<GameEntity>(string.Format(AssetPath.OrdersBurgers, order.Name), place.transform);
 				place.Initialize(order);
 			}
 		}
@@ -80,7 +78,7 @@ namespace _Scripts.Kitchen
 
 			_orders.Remove(order);
 			place.Complete();
-			_timer = Mathf.Max(0f, _timer - 6f);
+			_timer = Mathf.Max(0f, _timer - _customerSettings.GetReturnTimeAfterGetOrder());
 			return true;
 		}
 
@@ -97,7 +95,7 @@ namespace _Scripts.Kitchen
 
 			if (_waitTime <= 0f)
 			{
-				_customersHandler.FreeCustomer(this);
+				_customersesController.FreeCustomer(this);
 			}
 		}
 

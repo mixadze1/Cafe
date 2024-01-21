@@ -6,64 +6,63 @@ using _Scripts.Controllers.Orders;
 using _Scripts.Factory;
 using _Scripts.GameLogic;
 using _Scripts.Kitchen;
+using _Scripts.Providers;
 using UnityEngine;
 using Zenject;
 using Random = UnityEngine.Random;
 
 namespace _Scripts.Controllers.Customers
 {
-	public class CustomersController : ICustomerHandler, IDisposable, IFixedTickable, ICustomersInfo
+	public sealed class CustomersController : ICustomersController, IDisposable, IFixedTickable, ICustomersInfo, ICustomersSettings
 	{
-		private float _customerWaitTime = 18f;
-
+		private List<CustomerPlace> _customerPlaces = new();
 		private Stack<List<Order>> _orderSets;
 		private CustomerFactory _customerFactory;
 
 		private IGameHandler _gameHandler;
+		private IGameDelegates _gameDelegates;
 
-		private float _fixedTime;
-
-		public int CustomersTargetNumber;
-		public float CustomerSpawnTime;
-
-		private List<CustomerPlace> _customerPlaces = new();
-		private int _totalOrderTargetCondition;
 		private OrdersController _ordersController;
 		private GameObjectFactory _gameObjectFactory;
-		private CustomersProvider _customerProvider;
 
-		public int TotalCustomersGenerated { get; private set; }
+		private float _fixedTime;
+		private int _totalCustomersGenerated;
+		private int _totalOrderTargetCondition;
+		private int _returnTimeAfterGetOrder;
 
-		public event Action TotalCustomersGeneratedChanged;
-
-		public int GetTotalCustomersGenerated()
-		{
-			return TotalCustomersGenerated;
-		}
-
-		public int GetCustomersTargetNumber()
-		{
-			return CustomersTargetNumber;
-		}
+		[Header("Customer settings:")]
+		private float _customerWaitTime;
+		private float _customerSpawnTime;
+		private int _customersTargetNumber;
+		private int _decreaseAmountOrders;
 
 		private bool HasFreePlaces =>
 			_customerPlaces.Any(x => x.IsFree);
 
+		public event Action TotalCustomersGeneratedChanged;
 
 		[Inject]
-		private void Construct(CustomerFactory customerFactory, IGameHandler gameHandler,
+		private void Construct(CustomerFactory customerFactory, IGameHandler gameHandler, IGameDelegates gameDelegates,
 			OrdersController ordersController, GameObjectFactory gameObjectFactory, CustomersProvider customersProvider)
 		{
-			_customerProvider = customersProvider;
+			_gameDelegates = gameDelegates;
 			_gameObjectFactory = gameObjectFactory;
 			_ordersController = ordersController;
 			_gameHandler = gameHandler;
 			_customerFactory = customerFactory;
-			_gameHandler.OnRestartGame += OnRestartGame;
+			_gameDelegates.OnRestartGame += OnRestartGame;
 
+			SetCustomers(customersProvider);
+		}
+
+		private void SetCustomers(CustomersProvider customersProvider)
+		{
 			_customerPlaces.AddRange(customersProvider.CustomerPlaces);
-			CustomersTargetNumber = _customerProvider.CustomersTargetNumber;
-			CustomerSpawnTime = _customerProvider.CustomerSpawnTime;
+			_customersTargetNumber = customersProvider.CustomersTargetNumber;
+			_customerSpawnTime = customersProvider.CustomerSpawnTime;
+			_customerWaitTime = customersProvider.CustomerWaitTime;
+			_decreaseAmountOrders = customersProvider.DecreaseAmountOrdersFromMaximum;
+			_returnTimeAfterGetOrder = customersProvider.ReturnTimeAfterGetOrder;
 		}
 
 		public void Initialize()
@@ -75,18 +74,34 @@ namespace _Scripts.Controllers.Customers
 
 			_customerPlaces.ForEach(x => x.Free());
 			_fixedTime = 0f;
-			TotalCustomersGenerated = 0;
+			_totalCustomersGenerated = 0;
 
 			TotalCustomersGeneratedChanged?.Invoke();
-
-			_totalOrderTargetCondition = totalOrders - 2;
+			
+			_totalOrderTargetCondition = totalOrders - _decreaseAmountOrders;
 		}
 
-		public int GetTargetOrders() =>
-			_totalOrderTargetCondition;
+		public int GetTotalCustomersGenerated() => 
+			_totalCustomersGenerated;
+
+		public int GetCustomersTargetNumber()
+		{
+			if (_customersTargetNumber <= 0) 
+				Debug.LogError($"Not correct value customers {_customersTargetNumber}");
+
+			return _customersTargetNumber;
+		}
+
+		public int GetTargetOrders()
+		{
+			if (_totalOrderTargetCondition <= 0)
+				Debug.LogError($"Not correct value orders {_totalOrderTargetCondition}");
+			
+			return _totalOrderTargetCondition;
+		}
 
 		public bool IsComplete() =>
-			TotalCustomersGenerated >= CustomersTargetNumber && _customerPlaces.All(x => x.IsFree);
+			_totalCustomersGenerated >= _customersTargetNumber && _customerPlaces.All(x => x.IsFree);
 
 		public void FixedTick()
 		{
@@ -97,7 +112,7 @@ namespace _Scripts.Controllers.Customers
 
 			_fixedTime += Time.fixedDeltaTime;
 
-			if (TotalCustomersGenerated >= CustomersTargetNumber || !(_fixedTime > CustomerSpawnTime))
+			if (_totalCustomersGenerated >= _customersTargetNumber || !(_fixedTime > _customerSpawnTime))
 			{
 				return;
 			}
@@ -111,7 +126,7 @@ namespace _Scripts.Controllers.Customers
 
 		private int GenerateOrders(int totalOrders)
 		{
-			for (var i = 0; i < CustomersTargetNumber; i++)
+			for (var i = 0; i < _customersTargetNumber; i++)
 			{
 				var orders = new List<Order>();
 				var ordersNum = Random.Range(1, 4);
@@ -126,18 +141,12 @@ namespace _Scripts.Controllers.Customers
 
 			return totalOrders;
 		}
-
-		/// <summary>
-		/// Отпускаем указанного посетителя
-		/// </summary>
-		/// <param name="customer"></param>
+		
 		public void FreeCustomer(Customer customer)
 		{
 			var place = _customerPlaces.Find(x => x.CurCustomer == customer);
 			if (place == null)
-			{
 				return;
-			}
 
 			place.Free();
 			_gameHandler.CheckGameFinish();
@@ -162,14 +171,13 @@ namespace _Scripts.Controllers.Customers
 		private void SpawnCustomer()
 		{
 			var freePlaces = _customerPlaces.FindAll(x => x.IsFree);
+			
 			if (freePlaces.Count <= 0)
-			{
 				return;
-			}
 
 			var place = freePlaces[Random.Range(0, freePlaces.Count)];
 			place.PlaceCustomer(GenerateCustomer());
-			TotalCustomersGenerated++;
+			_totalCustomersGenerated++;
 			TotalCustomersGeneratedChanged?.Invoke();
 		}
 
@@ -178,7 +186,7 @@ namespace _Scripts.Controllers.Customers
 			var customer = _customerFactory.CreateCustomer(AssetPath.CustomerPrefab);
 
 			var orders = _orderSets.Pop();
-			customer.Initialize(orders, customerHandler: this, customersInfo: this, _gameObjectFactory);
+			customer.Initialize(orders, customersController: this, customersInfo: this, customersSettings:this, _gameObjectFactory);
 
 			return customer;
 		}
@@ -194,10 +202,13 @@ namespace _Scripts.Controllers.Customers
 			return _customerWaitTime;
 		}
 
+		public int GetReturnTimeAfterGetOrder() => 
+			_returnTimeAfterGetOrder;
+
 		public void Dispose()
 		{
-			if (_gameHandler != null)
-				_gameHandler.OnRestartGame -= OnRestartGame;
+			if (_gameDelegates != null)
+				_gameDelegates.OnRestartGame -= OnRestartGame;
 		}
 	}
 }

@@ -13,27 +13,30 @@ namespace _Scripts.UI
 		private ICustomersInfo _customersInfo;
 		private IGameChanges _gameChanges;
 		private IGameInfo _gameInfo;
-		private ICustomerHandler _customersHandler;
-		
+		private IGameDelegates _gameDelegates;
+		private ICustomersController _customersesController;
+
 		public Image OrdersBar;
 		public TMP_Text OrdersCountText;
 		public TMP_Text CustomersCountText;
-		
+
 		[Inject]
-		private void Construct(ICustomersInfo customerInfo, ICustomerHandler customerHandler, IGameChanges gameChanges, IGameInfo gameInfo)
+		private void Construct(ICustomersInfo customerInfo, IGameDelegates gameDelegates, ICustomersController customersController, IGameChanges gameChanges, IGameInfo gameInfo)
 		{
+			_gameDelegates = gameDelegates;
 			_gameInfo = gameInfo;
 			_gameChanges = gameChanges;
 			_customersInfo = customerInfo;
-			_customersHandler = customerHandler;
+			_customersesController = customersController;
+			_gameDelegates.OnStartGame += OnStartGame;
 		}
 
-		private void Start()
+		private void OnStartGame()
 		{
 			_gameChanges.TotalOrdersServedChanged += OnOrdersChanged;
-			_customersHandler.TotalCustomersGeneratedChanged += OnCustomersChanged;
+			_customersesController.TotalCustomersGeneratedChanged += OnCustomersesChanged;
 			OnOrdersChanged();
-			OnCustomersChanged();
+			OnCustomersesChanged();
 		}
 
 		private void OnDestroy()
@@ -42,10 +45,13 @@ namespace _Scripts.UI
 				_gameChanges.TotalOrdersServedChanged -= OnOrdersChanged;
 
 			if (_customersInfo != null)
-				_customersHandler.TotalCustomersGeneratedChanged -= OnCustomersChanged;
+				_customersesController.TotalCustomersGeneratedChanged -= OnCustomersesChanged;
+			
+			if(_gameDelegates != null)
+				_gameDelegates.OnStartGame -= OnStartGame;
 		}
 
-		private void OnCustomersChanged()
+		private void OnCustomersesChanged()
 		{
 			var cc = _customersInfo;
 			CustomersCountText.text = (cc.GetCustomersTargetNumber() - cc.GetTotalCustomersGenerated()).ToString();

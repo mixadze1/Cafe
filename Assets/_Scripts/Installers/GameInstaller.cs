@@ -3,6 +3,8 @@ using _Scripts.Controllers.Customers;
 using _Scripts.Controllers.Orders;
 using _Scripts.Factory;
 using _Scripts.GameLogic;
+using _Scripts.Kitchen;
+using _Scripts.Providers;
 using UnityEngine;
 using Zenject;
 
@@ -20,23 +22,31 @@ namespace _Scripts.Installers
 
         public override void InstallBindings()
         {
-            BindCustomerProvider();
-            BindCustomerController();
+            BindCustomersProvider();
+            BindCustomersController();
             BindGameplayController();
             BindOrdersController();
             
             BindFactoryCustomers();
             BindObjectFactory();
             BindGameObjectFactory();
+            BindPause();
+            BindTrashHandler();
         }
 
-        private void BindCustomerProvider() => 
+        private void BindTrashHandler() => 
+            Container.Bind<TrashHandler>().AsSingle();
+
+        private void BindPause() => 
+            Container.BindInterfacesTo<Pause.Pause>().AsSingle();
+
+        private void BindCustomersProvider() => 
             Container.Bind<CustomersProvider>().FromInstance(_customersProvider);
 
         private void BindOrdersController() =>
             Container.Bind<OrdersController>().AsSingle();
 
-        private void BindCustomerController() => 
+        private void BindCustomersController() => 
             Container.BindInterfacesTo<CustomersController>().AsSingle();
 
         private void BindGameplayController() =>

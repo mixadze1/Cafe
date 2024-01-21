@@ -1,4 +1,3 @@
-
 namespace _Scripts.Kitchen
 {
 	public sealed class Food

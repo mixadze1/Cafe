@@ -5,14 +5,14 @@ namespace _Scripts.Kitchen
 {
 	public sealed class OrderVisualizer : MonoBehaviour
 	{
-		public List<FoodVisualizer> Visualizers = new List<FoodVisualizer>();
+		public List<FoodVisualizer> Visualizers = new();
 
-		void Start()
+		private void Awake()
 		{
 			Clear();
 		}
 
-		void Clear()
+		private void Clear()
 		{
 			Visualizers.ForEach(x => x.SetEnabled(false));
 		}

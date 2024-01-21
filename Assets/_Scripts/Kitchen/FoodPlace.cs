@@ -5,21 +5,18 @@ namespace _Scripts.Kitchen
 {
 	public class FoodPlace : AbstractFoodPlace
 	{
-		public bool Cook = false;
-		public float CookTime = 0f;
-		public float OvercookTime = 0f;
+		private float _timer;
+		
+		public bool Cook;
+		public float CookTime;
+		public float OvercookTime;
 
 		public event Action FoodPlaceUpdated;
 
-		float _timer = 0f;
+		public Food CurFood { get; private set; }
+		public bool IsCooking { get; private set; }
 
-		public Food CurFood { get; private set; } = null;
-		public bool IsCooking { get; private set; } = false;
-
-		public bool IsFree
-		{
-			get { return CurFood == null; }
-		}
+		public bool IsFree => CurFood == null;
 
 		public float TimerNormalized
 		{
@@ -95,19 +92,6 @@ namespace _Scripts.Kitchen
 			return true;
 		}
 
-		public Food ExtractFood()
-		{
-			Food res = CurFood;
-			CurFood = null;
-
-			FoodPlaceUpdated?.Invoke();
-			return res;
-		}
-
-
-		/// <summary>
-		/// Освобождаем место
-		/// </summary>
 		public override void FreePlace()
 		{
 			CurFood = null;

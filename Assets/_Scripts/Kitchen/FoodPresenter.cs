@@ -10,7 +10,7 @@ namespace _Scripts.Kitchen
 
 		public FoodPlace Place;
 		
-		private void Start()
+		private void Awake()
 		{
 			Set?.Hide();
 			if (Place)

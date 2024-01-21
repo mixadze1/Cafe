@@ -5,10 +5,10 @@ namespace _Scripts.Kitchen
 {
 	public sealed class AutoFoodFiller : MonoBehaviour
 	{
-		public string FoodName = null;
+		public string FoodName;
 		public List<AbstractFoodPlace> Places = new();
 
-		private void Update()
+		private void FixedUpdate()
 		{
 			foreach (var place in Places)
 			{

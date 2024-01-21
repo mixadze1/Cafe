@@ -6,18 +6,12 @@ namespace _Scripts.Kitchen
     [Serializable]
     public class FoodVisualizersSet
     {
-        public GameObject Empty;
         public FoodVisualizer RawVisualizer;
         public FoodVisualizer CookedVisualizer;
         public FoodVisualizer OvercookedVisualizer;
 
         public void Hide()
         {
-            if (Empty != null)
-            {
-                Empty.SetActive(false);
-            }
-
             RawVisualizer?.SetEnabled(false);
             CookedVisualizer?.SetEnabled(false);
             OvercookedVisualizer?.SetEnabled(false);
@@ -26,10 +20,6 @@ namespace _Scripts.Kitchen
         public void ShowEmpty()
         {
             Hide();
-            if (Empty != null)
-            {
-                Empty.SetActive(true);
-            }
         }
 
         public void ShowStatus(Food.FoodStatus status)

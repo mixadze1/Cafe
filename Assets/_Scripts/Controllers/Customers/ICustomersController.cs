@@ -3,7 +3,7 @@ using _Scripts.Kitchen;
 
 namespace _Scripts.Controllers.Customers
 {
-    public interface ICustomerHandler
+    public interface ICustomersController
     {
         void FreeCustomer(Customer customer);
         bool IsComplete();

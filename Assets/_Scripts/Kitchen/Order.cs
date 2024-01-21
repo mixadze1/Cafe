@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using UnityEngine;
 
 namespace _Scripts.Kitchen
 {
 	public sealed class Order
 	{
+		private List<OrderFood> _allFoods;
+
 		public class OrderFood
 		{
 			public string Name { get; } = null;
@@ -20,18 +21,14 @@ namespace _Scripts.Kitchen
 
 		public readonly string Name;
 
+
 		public ReadOnlyCollection<OrderFood> Foods
-		{
-			get { return _foods.AsReadOnly(); }
-		}
+			=> _allFoods.AsReadOnly();
 
-		private List<OrderFood> _foods;
-
-		public Order(string name, List<OrderFood> foods)
+		public Order(string name, List<OrderFood> allFoods)
 		{
 			Name = name;
-			_foods = foods;
-			Debug.Log($" Name : {Name}");
+			_allFoods = allFoods;
 		}
 	}
 }

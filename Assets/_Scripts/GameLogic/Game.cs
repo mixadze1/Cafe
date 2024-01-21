@@ -3,6 +3,7 @@ using _Scripts.Controllers;
 using _Scripts.Controllers.Customers;
 using _Scripts.Controllers.Orders;
 using _Scripts.Kitchen;
+using _Scripts.Pause;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
@@ -10,23 +11,17 @@ using Zenject;
 
 namespace _Scripts.GameLogic
 {
-	public sealed class Game : MonoBehaviour, IGameHandler, IGameInfo, IGameChanges
+	public sealed class Game : MonoBehaviour, IGameHandler, IGameInfo, IGameChanges, IGameDelegates
 	{
 		private ICustomersInfo _customersInfo;
-		private ICustomerHandler _customerHandler;
+		private ICustomersController _customersController;
+		private IPauseProvider _pauseProvider;
 		private OrdersController _orderController;
 
-		public event Action OnWinGame;
-		public event Action OnLoseGame;
-		public event Action OnEndGame;
-		public event Action OnRestartGame;
-		private int _ordersTarget = 0;
+		private int _ordersTarget;
+		private int _totalOrdersServed;
 
-		public event Action TotalOrdersServedChanged;
-
-		public int TotalOrdersServed { get; private set; } = 0;
-
-		public int OrdersTarget
+		private int OrdersTarget
 		{
 			get => _ordersTarget;
 			set
@@ -35,11 +30,18 @@ namespace _Scripts.GameLogic
 				TotalOrdersServedChanged?.Invoke();
 			}
 		}
+		public event Action TotalOrdersServedChanged;
+		public event Action OnWinGame;
+		public event Action OnLoseGame;
+		public event Action OnEndGame;
+		public event Action OnStartGame;
+		public event Action OnRestartGame;
 
 		[Inject]
-		private void Construct(ICustomersInfo customersInfo, ICustomerHandler customerHandler, OrdersController ordersController)
+		private void Construct(IPauseProvider pauseProvider, ICustomersInfo customersInfo, ICustomersController customersController, OrdersController ordersController)
 		{
-			_customerHandler = customerHandler;
+			_pauseProvider = pauseProvider;
+			_customersController = customersController;
 			_customersInfo = customersInfo;
 			_orderController = ordersController;
 		}
@@ -47,30 +49,22 @@ namespace _Scripts.GameLogic
 		private void Start()
 		{
 			_orderController.Initialize();
-			_customerHandler.Initialize();
+			_customersController.Initialize();
 			Initialize();
-		}
-		
-		private void Initialize()
-		{
-			TotalOrdersServed = 0;
-			Time.timeScale = 1f;
-			TotalOrdersServedChanged?.Invoke();
-			OrdersTarget = _customersInfo.GetTargetOrders();
+			OnStartGame?.Invoke();
 		}
 
 		public int GetOrdersTarget() => 
 			OrdersTarget;
-
-
+		
 		public int GetTotalOrdersServed() => 
-			TotalOrdersServed;
+			_totalOrdersServed;
 
 		public void CheckGameFinish()
 		{
-			if (_customerHandler.IsComplete())
+			if (_customersController.IsComplete())
 			{
-				EndGame(TotalOrdersServed >= OrdersTarget);
+				EndGame(_totalOrdersServed >= OrdersTarget);
 			}
 		}
 
@@ -87,17 +81,23 @@ namespace _Scripts.GameLogic
 				OnLoseGame?.Invoke();
 			}
 		}
-		
 
-		[UsedImplicitly]
+		private void Initialize()
+		{
+			_totalOrdersServed = 0;
+			_pauseProvider.UnPauseGame();
+			TotalOrdersServedChanged?.Invoke();
+			OrdersTarget = _customersInfo.GetTargetOrders();
+		}
+		
 		public bool TryServeOrder(Order order)
 		{
-			if (!_customerHandler.ServeOrder(order))
+			if (!_customersController.ServeOrder(order))
 			{
 				return false;
 			}
 
-			TotalOrdersServed++;
+			_totalOrdersServed++;
 			TotalOrdersServedChanged?.Invoke();
 			CheckGameFinish();
 			return true;

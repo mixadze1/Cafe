@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using _Scripts.Controllers;
 using _Scripts.Controllers.Orders;
 using UnityEngine;
 using Zenject;
@@ -23,7 +22,6 @@ namespace _Scripts.Kitchen
 		{
 			_orderController = ordersController;
 			_orderController.OnCompleteOrder += GetOrders;
-
 		}
 
 		private void GetOrders()
@@ -34,9 +32,7 @@ namespace _Scripts.Kitchen
 		public override bool TryPlaceFood(Food food)
 		{
 			if (!CanAddFood(food))
-			{
 				return false;
-			}
 
 			foreach (var place in Places)
 			{
@@ -104,9 +100,7 @@ namespace _Scripts.Kitchen
 			_possibleOrders.RemoveAll(x => ordersToRemove.Contains(x));
 		}
 
-		private void OnDestroy()
-		{
+		private void OnDestroy() => 
 			_orderController.OnCompleteOrder -= GetOrders;
-		}
 	}
 }
